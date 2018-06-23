@@ -1,0 +1,18 @@
+Package: mbmcl
+Title: Multi Boot Mack Chain Ladder boostrap the Braun model in claim reserving
+Version: 0.0.0.9000
+Authors@R: person("Oskar", "Laverny", email = "oskar.laverny@gmail.com", role = c("aut", "cre"))
+Description: This package contains functions to bootstrap the mack-chain ladder model with one-year objective, for multiple triangles simultaneously, and even handles the case of french builders insurance and PSNEM. It has been build in the framework of the actuarial thesis of the author. It's not meant to be published, just used to facilitate inside work.
+Depends: R (>= 3.4.3)
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.0.1
+Imports: dplyr,
+    tidyverse,
+    magrittr,
+    purrr,
+    ChainLadder,
+    mvtnorm,
+    ggplot2,
+    gridExtra
