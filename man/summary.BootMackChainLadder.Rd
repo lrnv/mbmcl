@@ -13,7 +13,7 @@ summary.BootMackChainLadder(object, ...)
 Give summary statistics about the bootstrap.
 }
 \details{
-The function only print information about the model, and return the model (usefull in pipes).
+The function only print information about the model.
 }
 \examples{
 data(ABC)

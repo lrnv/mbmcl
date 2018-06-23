@@ -55,8 +55,8 @@ NULL
   return(unname(sqrt(sigma)))
 }
 .rho         <- function(triangles,sigma = lapply(triangles,.sigma),indivF = lapply(triangles,.DFIndiv),f = lapply(triangles,.DF)){
-  # estimateur de la matrice de correlation par colonne entre les différents triangles :
-  # retourne un array [N - 1 , NbTriangles,Nbtriangles] contenant les matrices de corrélations entre les colonnes des triangles d'input.
+  # estimateur de la matrice de correlation par colonne entre les differents triangles :
+  # retourne un array [N - 1 , NbTriangles,Nbtriangles] contenant les matrices de correlations entre les colonnes des triangles d'input.
   # on attend dans triangles une liste de triangles
 
   # construction de l'objet array que l'on va retourner :
@@ -64,7 +64,7 @@ NULL
   rho <- array(NA,dim = c(I-1,length(triangles),length(triangles)))
   omega <- rho
 
-  # # Precomputage des différentes quantitée d'intéret pour nos triangles :
+  # # Precomputage des differentes quantitee d'interet pour nos triangles :
   # sigma <- lapply(triangles,.sigma)
   # indivF <- lapply(triangles,.DFPassageIndiv)
   # f <- lapply(triangles,.DFPassage)
@@ -104,12 +104,12 @@ NULL
           for(l in 1:(I-(j-1)-1)){
             somme <- somme + sqrt(triangles[[n]][l,j] * triangles[[m]][l,j])*(indivF[[n]][l,j] - f[[n]][j])*(indivF[[m]][l,j] - f[[m]][j])/(sigma[[n]][j]*sigma[[m]][j])
           }
-          # puis on agrege ces différents résultats :
+          # puis on agrege ces differents resultats :
           rho[j,n,m] <- cj * somme
 
         }
 
-        # Il nous reste a estimer le dernier facteur par une prolongation polynomiale (proposée par MAK 1997, comme poru la vairance : ):
+        # Il nous reste a estimer le dernier facteur par une prolongation polynomiale (proposee par MAK 1997, comme poru la vairance : ):
         rho[I-1,n,m] <- min( (rho[I-2,n,m]*sigma[[n]][I-2]*sigma[[m]][I-2])^2/(rho[I-3,n,m]*sigma[[n]][I-3]*sigma[[m]][I-3]),
                              abs(rho[I-3,n,m]*sigma[[n]][I-3]*sigma[[m]][I-3]),
                              abs(rho[I-2,n,m]*sigma[[n]][I-2]*sigma[[m]][I-2]))
@@ -142,13 +142,13 @@ NULL
   n = length(Triangle)
   I = dim(Triangle)[1]
 
-  # Gestion du seuil d'exclusion des résidus :
+  # Gestion du seuil d'exclusion des residus :
   Triangle2 <- Triangle
   if(!is.na(seuil)){
     Triangle2[Triangle[(!is.na(Triangle))]>seuil] <- NA
   }
   if(zonnage){
-    # Il faut alors zonner les résidus. les morceaux de zonnage sont fixés et ne sont pas modifiables
+    # Il faut alors zonner les residus. les morceaux de zonnage sont fixes et ne sont pas modifiables
     morceaux = list(c(1,2),seq(3,9),seq(10,12),seq(13,I))
 
     samples <- lapply(1:length(morceaux),function(i){
@@ -280,7 +280,7 @@ NULL
   triangle[is.na(triangle)] <- 0
 
   if(deja_cumule){
-    # Passage en incrémental si et seulement si ça renvois pas une erreur :
+    # Passage en incremental si et seulement si ca renvois pas une erreur :
     lastfunc <- function(x){
       incr2cum(x,na.rm=TRUE)
     }
@@ -542,7 +542,7 @@ CDR.BootMackChainLadder     <- function(BMCL){
 #' @export
 #'
 #' @details
-#' The function only print information about the model, and return the model (usefull in pipes).
+#' The function only print information about the model.
 #'
 #' @examples
 #' data(ABC)
@@ -556,7 +556,7 @@ summary.BootMackChainLadder <- function(object,...){
   #print(mean$ByDev)
   cat("\n Totals across origin years : \n")
   print(format(t(mean$Totals),format="i", nsmall=0, big.mark=","))
-  return(object)
+  return(NULL)
 }
 #' print.BootMackChainLadder
 #'
@@ -571,7 +571,7 @@ summary.BootMackChainLadder <- function(object,...){
 #' print(BMCL)
 print.BootMackChainLadder   <- function(x,...){
   print(summary(x))
-  return(x)
+  return(NULL)
 }
 
 
@@ -867,12 +867,10 @@ Corel <- function(MBMCL,...){
 #'
 #' @return an "Etudeprincipale" object wich has only a print method and contains everything (try to str it !)
 #' @export
-#'
-#' @examples
 Analyse <- function(triangles,B=100,distNy1="normal",distNy2="normal",seuil=NA,pdd = NA, Dossiers = NA,Zonnage.capi=FALSE){
 
-  # Achtung : Le 4ème triangle doit être celui en capi.
-  # Dans les 3 premiers triangles ( ils doivent être només), l'un d'entre eux doit s'apeller RCDO.
+  # Achtung : Le 4eme triangle doit etre celui en capi.
+  # Dans les 3 premiers triangles ( ils doivent etre nomes), l'un d'entre eux doit s'apeller RCDO.
   cat("\n MBMCL (1/4)...\n")
   # Calcul du bootstrapp syncrho sur les triangles SI :
   MBMCL <- MultiBootMackChainLadder(triangles[1:3],
@@ -905,7 +903,7 @@ Analyse <- function(triangles,B=100,distNy1="normal",distNy2="normal",seuil=NA,p
   {sum(.diag(incr2cum(.passage.a.lultime(triangles[[4]],.)))) - sum(triangles[[4]],na.rm=TRUE)}
 
 
-  # récupération des 5 provisions uniquement pour analyse :
+  # recuperation des 5 provisions uniquement pour analyse :
   ibnr <- MBMCL %>%
     map("NyIBNR") %>%
     map(rowSums) %>%
@@ -923,7 +921,7 @@ Analyse <- function(triangles,B=100,distNy1="normal",distNy2="normal",seuil=NA,p
     LOB8 = RCDC + RCDO + PSNEM + RCG
   )
 
-  # petite mise en jambe sur les résidus :
+  # petite mise en jambe sur les residus :
   analyse.residus <- map(triangles[1:3],.residuals) %>%
     map(as.data.frame) %>%
     map(as.tibble) %>%
@@ -960,7 +958,6 @@ Analyse <- function(triangles,B=100,distNy1="normal",distNy2="normal",seuil=NA,p
 #' @return returns x after aving printed a lot of informations about it.
 #' @export
 #'
-#' @examples
 print.Etudeprincipale <- function(x,...){
   cat("Ceci est une etude bootstrap synchro en LOB8. \n\n1. Parametres :\n \tB =",x$B,
       "\n\tdistNy1 = ",x$distNy1,
@@ -973,22 +970,22 @@ print.Etudeprincipale <- function(x,...){
   # cat("\n\nDossiers d'enregistrement: ")
   # print(rez$Dossiers %>% unlist)
 
-  # petit check : les ultimes de l'année prochaine moins les ibnr de l'année prochaine moins la diag de cette année, ça doit faire 0.
+  # petit check : les ultimes de l'annee prochaine moins les ibnr de l'annee prochaine moins la diag de cette annee, ca doit faire 0.
   if(c((rowSums(x$MBMCL$RCDO$NyUltimates) - rowSums(x$MBMCL$RCDO$NyIBNR) - sum(.diag(x$triangles$RCDO))),
     (rowSums(x$MBMCL$RCDC$NyUltimates) - rowSums(x$MBMCL$RCDC$NyIBNR) - sum(.diag(x$triangles$RCDC))),
     (rowSums(x$MBMCL$RCG$NyUltimates)  - rowSums(x$MBMCL$RCG$NyIBNR)  - sum(.diag(x$triangles$RCG)))) %>% round(6) %>% unique != 0){
-    cat("Un des tests échous, le modèle possède probablement une erreur de précision quelque part.")
+    cat("Un des tests echous, le modele possede probablement une erreur de precision quelque part.")
   }
 
   cat("\n\n2. Totaux du bootstrap synchro partie repartition :\n")
   print(mean(x$MBMCL)$Totals)
 
-  cat("\n\n3. PSNEM et PSAP déterministes obtenus en capi :\n")
+  cat("\n\n3. PSNEM et PSAP deterministes obtenus en capi :\n")
   cat("\n\tPSNEM = ",x$valeur.psnem.deterministe)
   cat("\n\tPSAP  = ",x$valeur.psap.capi.deterministe)
 
 
-  cat("\n\n4. IBNR moyens (EN RCDO : calculé en répart ou en capi) :\n")
+  cat("\n\n4. IBNR moyens (EN RCDO : calcule en repart ou en capi) :\n")
   print(colMeans(x$ibnr))
   cat("\nCorrelation des IBNR : \n")
   print(cor(x$ibnr))
@@ -999,7 +996,7 @@ print.Etudeprincipale <- function(x,...){
   print(cor(x$ibnr))
 
 
-  cat("\n\n6. Résultats en termes de sigma de reserve :\n")
+  cat("\n\n6. Resultats en termes de sigma de reserve :\n")
   x$psap %>%
     map_dfr(~data.frame(sd = sd(.),mean = mean(.))) %>%
     mutate(grh = colnames(x$psap)) %>%
@@ -1007,8 +1004,8 @@ print.Etudeprincipale <- function(x,...){
     mutate(sigma = sd/mean) %T>% print
 
 
-  cat("\n\n7. Pourcentage de résidus en dehors de (-2;2) : ",table(x$analyse.residus$is.ok) %>% {.[1]/(.[1]+.[2])})
-  return(x)
+  cat("\n\n7. Pourcentage de residus en dehors de (-2;2) : ",table(x$analyse.residus$is.ok) %>% {.[1]/(.[1]+.[2])})
+  return(NULL)
 }
 
 #' plots of EtudePrincipale
@@ -1025,10 +1022,9 @@ print.Etudeprincipale <- function(x,...){
 #' @details Following plotting functions are avaliable : plot_factors_density plot_reserve_density plot_ibnr_density plot_burn_in plot_rho plot_resid_norm plot_resid_dens plot_resid_dens2 plot_resid_stabilite plot_resid_margins plot_cdr_mw plot_cadences_capi
 #'
 #' @aliases plot_factors_density plot_reserve_density plot_ibnr_density plot_burn_in plot_rho plot_resid_norm plot_resid_dens plot_resid_dens2 plot_resid_stabilite plot_resid_margins plot_cdr_mw plot_cadences_capi
-#' @examples
 plot_factors_density <- function(x){
 
-  # graphique des cadences de développement bootstrapées
+  # graphique des cadences de developpement bootstrapees
     x$MBMCL %>%
     map("DFBoot") %>%
     map(as.data.frame) %>%
@@ -1048,30 +1044,31 @@ plot_factors_density <- function(x){
     geom_hline(yintercept = 1,size=0.5) +
     facet_grid(grh ~ .,scales = "free") +
     theme(legend.position="none") +
-    ggtitle("Facteurs de développements bootstrappés en répartition")
+    ggtitle("Facteurs de developpements bootstrappes en repartition")
 
 }
+#' @export
 plot_reserve_density <- function(x){
   p2 <- x$psap %>%
     gather %>%
     ggplot(aes(x=value,col=key,fill=key)) +
     geom_density(alpha=0.1) +
-    ggtitle("Densitées des provisions des différents triangles")
+    ggtitle("Densitees des provisions des differents triangles")
 
-  # densité des psap et des psnem :
+  # densite des psap et des psnem :
   p3 <- data.frame(psnem = x$psap$PSNEM, psap = x$psap$RCDO) %>%
     gather %>%
     ggplot(aes(x=value,col=key,fill=key)) +
     geom_density(alpha=0.1) +
-    ggtitle("Densitées des psap et des psnem (à un an) sur la RCDO")
+    ggtitle("Densitees des psap et des psnem (a un an) sur la RCDO")
 
 
-  # densiité des IBNR :
+  # densiite des IBNR :
   p4 <- x$ibnr %>%
     gather %>%
     ggplot(aes(x=value,col=key,fill=key)) +
     geom_density(alpha=0.1) +
-    ggtitle("Densitées des ibnr uniquement")
+    ggtitle("Densitees des ibnr uniquement")
 
 
   grid.arrange(grobs=list(p2,p3,p4),layout_matrix = rbind(c(1),c(2),c(3)))
@@ -1079,6 +1076,8 @@ plot_reserve_density <- function(x){
   # plot(1)
   # plot(p5)
 }
+
+#' @export
 plot_ibnr_density<- function(x){
 
   par(mfrow=c(3,2))
@@ -1096,12 +1095,13 @@ plot_ibnr_density<- function(x){
   abline(v = x$valeur.psap.capi.deterministe)
 
   x$ibnr$RCDO.psnem %>% density %>% plot(main="PSNEM RCDO")
-  abline(v=x$valeur.psnem.deterministe) # on a donc bien une psnem centré sur la psnem deterministe.
+  abline(v=x$valeur.psnem.deterministe) # on a donc bien une psnem centre sur la psnem deterministe.
 
   plot(density((x$ibnr$RCDO.ibnr.capi-x$ibnr$RCDO)/x$ibnr$RCDO), main="Erreur relative des ibnr RCDO capi/repart")
   abline(v = mean((x$ibnr$RCDO.ibnr.capi-x$ibnr$RCDO)/x$ibnr$RCDO))
   par(mfrow = c(1,1))
 }
+#' @export
 plot_burn_in <- function(x){
   # Burn-in de la varianc des provisions :
   p1 <- x$psap %>%
@@ -1138,14 +1138,16 @@ plot_burn_in <- function(x){
 
   grid.arrange(p1,p2,p3,p4)
 }
+#' @export
 plot_rho <- function(x){
-  # graphique des coeficients de corélations des triangles.
+  # graphique des coeficients de corelations des triangles.
   rho = .rho(x$triangles)
-  map(1:(as.numeric(rev(rownames(x$triangles[[1]]))[1])-1990-1),~c(rho[.x,,][1,2:3],rho[.x,,][2,3])) %>% map_dbl(1) %>% plot(col=4,main="Paramètres de corelations des triangles.",ylim=c(-1,1))
+  map(1:(as.numeric(rev(rownames(x$triangles[[1]]))[1])-1990-1),~c(rho[.x,,][1,2:3],rho[.x,,][2,3])) %>% map_dbl(1) %>% plot(col=4,main="Parametres de corelations des triangles.",ylim=c(-1,1))
   map(1:(as.numeric(rev(rownames(x$triangles[[1]]))[1])-1990-1),~c(rho[.x,,][1,2:3],rho[.x,,][2,3])) %>% map_dbl(2) %>% points(col=2)
   map(1:(as.numeric(rev(rownames(x$triangles[[1]]))[1])-1990-1),~c(rho[.x,,][1,2:3],rho[.x,,][2,3])) %>% map_dbl(3) %>% points(col=3)
   abline(h=0)
 }
+#' @export
 plot_resid_norm <- function(x){
   par(mfrow = c(2,3))
   x$analyse.residus %>%
@@ -1156,32 +1158,35 @@ plot_resid_norm <- function(x){
       abline(0,1)
     })}
 
-  x$analyse.residus %>% filter(tri == "RCDO") %>% .$value %>% density(na.rm=TRUE) %>% plot(xlim=c(-5,5),main="Densités des résidus en RCDO")
+  x$analyse.residus %>% filter(tri == "RCDO") %>% .$value %>% density(na.rm=TRUE) %>% plot(xlim=c(-5,5),main="Densites des residus en RCDO")
   curve(dnorm,add=TRUE,col=2)
-  x$analyse.residus %>% filter(tri == "RCDC") %>% .$value %>% density(na.rm=TRUE) %>% plot(xlim=c(-5,5),main="Densités des résidus en RCDC")
+  x$analyse.residus %>% filter(tri == "RCDC") %>% .$value %>% density(na.rm=TRUE) %>% plot(xlim=c(-5,5),main="Densites des residus en RCDC")
   curve(dnorm,add=TRUE,col=2)
-  x$analyse.residus %>% filter(tri == "RCG") %>% .$value %>% density(na.rm=TRUE) %>% plot(xlim=c(-5,5),main="Densités des résidus en RCG")
+  x$analyse.residus %>% filter(tri == "RCG") %>% .$value %>% density(na.rm=TRUE) %>% plot(xlim=c(-5,5),main="Densites des residus en RCG")
   curve(dnorm,add=TRUE,col=2)
   par(mfrow = c(1,1))
 }
+#' @export
 plot_resid_dens <- function(x){
-  # graphiques des résidus
+  # graphiques des residus
   x$analyse.residus %>%
     drop_na %>%
     select(tri,value) %>%
     ggplot(aes(x = value,color=tri,fill=tri)) +
     geom_density(alpha = 0.1) +
-    ggtitle("Densité des résidus des triangles en survenance-inventaire")
+    ggtitle("Densite des residus des triangles en survenance-inventaire")
 }
+#' @export
 plot_resid_dens2 <- function(x){
-  # analyse des résidus :
+  # analyse des residus :
 
   rez <- x$analyse.residus %>% drop_na %>% .$value
-  hist(rez,freq=FALSE,main="Distribution des résidus / densitée d'une N(0,1)")
+  hist(rez,freq=FALSE,main="Distribution des residus / densitee d'une N(0,1)")
   x = seq(min(rez),max(rez),length=1000)
   y = dnorm(x)
   lines(x,y)
 }
+#' @export
 plot_resid_stabilite <- function(x){
 
   p1 <- x$analyse.residus %>% drop_na %>%
@@ -1189,29 +1194,31 @@ plot_resid_stabilite <- function(x){
     ggplot(aes(x=dev,y=value,color=tri)) +
     geom_point() +
     geom_smooth(method="loess") +
-    ggtitle("Résidus des différents triangles par année de developpement")
+    ggtitle("Residus des differents triangles par annee de developpement")
   p2 <- x$analyse.residus %>% drop_na %>%
     mutate(origin = as.numeric(origin)) %>%
     ggplot(aes(x=origin,y=value,color=tri)) +
     geom_point() +
     geom_smooth(method="loess") +
-    ggtitle("Résidus des différents triangles par année d'origine")
+    ggtitle("Residus des differents triangles par annee d'origine")
   p3 <- x$analyse.residus %>%
     mutate(cal = as.numeric(origin)+as.numeric(dev)) %>% drop_na %>%
     ggplot(aes(x=cal,y=value,color=tri)) +
     geom_point() +
     geom_smooth(method="loess") +
-    ggtitle("Résidus des différents triangles par année calendaire")
+    ggtitle("Residus des differents triangles par annee calendaire")
 
   grid.arrange(p1,p2,p3)
 }
+#' @export
 plot_resid_margins <- function(x){
   # et finalement les planches de graphiques de mack-chain-ladder
   suppressWarnings(x$triangles[1:3] %>% map(MackChainLadder,est.sigma = "Mack") %>% map(plot))
   suppressWarnings(x$triangles[[4]] %>% incr2cum %>% MackChainLadder(est.sigma = "Mack") %>% plot)
 }
+#' @export
 plot_cdr_mw <- function(x){
-  # petite comparaison des CDR avec ceux implémentés dans la librairie ChainLadder :
+  # petite comparaison des CDR avec ceux implementes dans la librairie ChainLadder :
   cdr.booted <- c(CDR(x$MBMCL$RCDO)$`CDR(1)S.E.`[1:24],CDR(x$MBMCL$RCDC)$`CDR(1)S.E.`[1:24],CDR(x$MBMCL$RCG)$`CDR(1)S.E.`[1:24])
   suppressWarnings(classical.cdr.merz <- c(x$triangles$RCDO %>% MackChainLadder %>% CDR %>% .$`CDR(1)S.E.` %>% .[1:24],
                                            x$triangles$RCDC %>% MackChainLadder %>% CDR %>% .$`CDR(1)S.E.` %>% .[1:24],
@@ -1219,6 +1226,7 @@ plot_cdr_mw <- function(x){
   plot(cdr.booted,classical.cdr.merz,main="CDR(1) : bootstrap VS M&W classique")
   abline(0,1)
 }
+#' @export
 plot_cadences_capi <- function(x,type =2){
 
 
@@ -1248,7 +1256,7 @@ plot_cadences_capi <- function(x,type =2){
         zonne = as.factor(1*(x<3)+2*(x>2)*(x<10)+3*(x>9)*(x<13)+4*(x>12))
       ) %>%
       ggplot(aes(as.factor(x),y,color=zonne))+
-      ggtitle("Cadence de manifestations de la RCDO - Zonnée.") +
+      ggtitle("Cadence de manifestations de la RCDO - Zonnee.") +
       geom_boxplot(width=1,outlier.size = 0.7)+
      stat_summary(fun.y=mean, geom="line", aes(group=1))
     #stat_summary(fun.y=mean, geom="line", aes(group=1))  +
@@ -1270,7 +1278,7 @@ plot_cadences_capi <- function(x,type =2){
         zonne = as.factor(1*(x<3)+2*(x>2)*(x<10)+3*(x>9)*(x<13)+4*(x>12))
       ) %>%
       ggplot(aes(as.factor(x),y,color=zonne))+
-      ggtitle("Cadence de manifestations de la RCDO - Zonnée.") +
+      ggtitle("Cadence de manifestations de la RCDO - Zonnee.") +
       geom_boxplot(width=1,outlier.size = 0.7)+
       #stat_summary(fun.y=mean, geom="line", aes(group=1))  +
       #stat_summary(fun.y=mean, geom="point") +
@@ -1280,6 +1288,7 @@ plot_cadences_capi <- function(x,type =2){
 
   return(p)
 }
+
 
 
 #' .creer_nom_fichier
@@ -1293,8 +1302,6 @@ plot_cadences_capi <- function(x,type =2){
 #'
 #' @return The file name (a string)
 #' @export
-#'
-#' @examples
 .creer_nom_fichier <- function(graves,seuil,type,data,annee,zonnage){
   # enplacement du fichier de sauvegarde :
   if(graves){
@@ -1385,10 +1392,10 @@ plot_cadences_capi <- function(x,type =2){
 # data.frame(cdr1 = CDR(MBMCL1)$ByOrigin$`CDR(1).SE.Tot`,
 #            cdr2 = CDR(MBMCL2)$ByOrigin$`CDR(1).SE.Tot`,
 #            cdr3 = CDR(MBMCL3)$ByOrigin$`CDR(1).SE.Tot`) %>% matplot(type="l")
-# legend("topleft",cex=0.7,col=c(1,2,3),lty=c(1,2,3),legend = c("H : résidus normaux, corrélés, simulés","H : résidus globalement corrélés, boostrapés","H : résidus corrélés par colonne, bootstrapé"))
+# legend("topleft",cex=0.7,col=c(1,2,3),lty=c(1,2,3),legend = c("H : residus normaux, correles, simules","H : residus globalement correles, boostrapes","H : residus correles par colonne, bootstrape"))
 #
 #
-# # sigma de réserve total :
+# # sigma de reserve total :
 # sigma1 <- CDR(MBMCL1)$Total["Tot",2]/CDR(MBMCL1)$Total["Tot",1]
 # sigma2 <- CDR(MBMCL2)$Total["Tot",2]/CDR(MBMCL2)$Total["Tot",1]
 # sigma3 <- CDR(MBMCL3)$Total["Tot",2]/CDR(MBMCL3)$Total["Tot",1]
