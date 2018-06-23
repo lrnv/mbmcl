@@ -1,5 +1,16 @@
-# The main point of this script is to provide a way to bootstrap Mack's models and M&W extention.
-##### Basic functions #####
+#' @import ChainLadder
+#' @import tidyverse
+#' @import magrittr
+#' @import dplyr
+#' @import purrr
+#' @import mvtnorm
+#' @import ggplot2
+#' @import gridExtra
+#' @import dplyr
+NULL
+
+
+##### Basic functions                                                                #####
 .diag        <- function(Triangle){
 # sympli returns the diagonal of the Triangle
   unname(rev(diag(Triangle[nrow(Triangle):1,])))
@@ -124,7 +135,6 @@
   }
   return(residus)
 }
-
 .sampling    <- function(Triangle,N=100,seuil = NA,zonnage=FALSE){
   # Fonction qui bootstrap un Triangle de positions
   # On fabrique une liste de Triangle de r?sidus bootstrapp?s :
@@ -172,7 +182,7 @@
 }
 .applysample <- function(sample,Triangle){
   # Fonction d'application de cet sampling :
-  return(as.triangle(
+  return(ChainLadder::as.triangle(
     matrix(as.vector(Triangle)[as.vector(sample)],
            nrow=dim(Triangle))))
 }
@@ -227,8 +237,148 @@
   class(result) <- c("BootMackChainLadder",class(result))
   return(result)
 }
+.passage.a.lultime      <- function(tri.ds,cad){
+  # passage a l'ultime :
+  I <- dim(tri.ds)[[1]]
+  tri.ds.ult <- tri.ds
+  for(i in 1:I){
+    for (j in 1:(I-i+1)){
+      tri.ds.ult[i,j] <- tri.ds[i,j]/cad[i+j-1]
+    }
+  }
 
-##### Boot Mack Chain Ladder #####
+  # On retourne le triangle :
+  return(tri.ds.ult)
+}
+.erreur.passage.ultime  <- function(tri.ds.ult,tri.si,tri.ds) {
+  # Clacul de l'erreur du au passage a l'ultime :
+  var1 <- tri.ds.ult %>% .diag %>% sum
+  var2 <- tri.ds %>% sum(na.rm=TRUE)
+  var3 <- tri.si %>% .ibnr %>% sum
+
+  return(var1 - var2 - var3)
+}
+.check.triangle         <- function(triangle,dim=dim(triangle)){
+  # FOnction de verification des dimentions d'un triangle :
+  lignes <- row.names(triangle) %>%
+    as.numeric %>%
+    {add(.,-.[1])} %>%
+    {prod(. == (0:(length(.)-1)))} # Retourne TRUE si les lignes sont bonnes, faux sinon.
+
+  collonnes <- colnames(triangle)  %>%
+    as.numeric %>%
+    {add(.,-.[1])} %>%
+    {prod(. == (0:(length(.)-1)))}  # Retourne TRUE si les collonnes sont bonnes, faux sinon.
+
+  return(lignes & collonnes) # si le retour est faux, il faut fixer le triangle.
+}
+.fix.triangle.dimention <- function(triangle,taille=27,replaceNAbyZero = FALSE,deja_cumule=TRUE){
+
+
+
+  # des zero a la place des NA :
+  triangle[is.na(triangle)] <- 0
+
+  if(deja_cumule){
+    # Passage en incrémental si et seulement si ça renvois pas une erreur :
+    lastfunc <- function(x){
+      incr2cum(x,na.rm=TRUE)
+    }
+    triangle <- tryCatch(expr={cum2incr(triangle)},error=function(e){
+      lastfunc <<- function(x){x}
+      triangle
+    })
+  }
+
+
+
+
+  tri <- matrix(NA,nrow(triangle),taille)
+  tri2 <- matrix(NA,taille,taille)
+
+  # Occupons nous d'abords de completer les colonnes :
+  for(i in 1:taille){
+    if(as.character(i-1) %in% colnames(triangle)){
+      tri[,i] <- triangle[,colnames(triangle) == as.character(i-1)]
+    } else{
+      tri[,i] <- rep(NA,nrow(triangle))
+    }
+  }
+
+  # puis completons les lignes :
+  zero = 1991
+  for (i in 1:taille ){
+    if((i-1) %in% (as.numeric(row.names(triangle))-zero)){
+      tri2[i,] <- tri[which((as.numeric(row.names(triangle))-zero) %in% (i-1)),]
+    } else {
+      tri2[i,] <- rep(NA,taille)
+    }
+  }
+
+  # on reconstruit le triangle, on remet les noms en place et on retourne :
+  tri <- as.triangle(tri2)
+
+  # On remplace tout les NA sous la diagonale par des 0 :
+  for(i in 1:taille){
+    for(j in 1:(taille-i+1)){
+      if(is.na(tri[i,j])){
+        tri[i,j] = 0
+      }
+    }
+  }
+  for(i in 1:taille){
+    for(j in 1:taille){
+      if(i+j>taille+1){
+        tri[i,j] <- NA
+      }
+    }
+  }
+
+  # on remet en place les noms de lignes et de colonnes :
+  row.names(tri) <- as.character(1991:(1991+taille-1))
+  colnames(tri) <- as.character(0:(taille-1))
+
+
+  if(deja_cumule){
+    tri <- lastfunc(tri)
+  }
+  # on cumule et on renvois :
+  return(tri)
+}
+.cumsd <- function(x){
+  return(sapply(seq_along(x), function(k, z) sd(z[1:k]), z = x))
+}
+.cumcorel <- function(x){
+  noms = names(x)
+  nomMat = map(1:ncol(x),~map(1:ncol(x),function(y){paste0(noms[.x],"-",noms[y])}))
+  cor = list()
+  for(i in 1:nrow(x)){
+    cor[[i]] = cor(x[1:i,]) %>% as.vector
+  }
+  cor %>%
+  {do.call(rbind.data.frame,.)} %>%
+    set_names(nomMat %>% unlist) %>%
+    return
+}
+##### Boot Mack Chain Ladder                                                         #####
+#' Boot Mack Chain Ladder model
+#'
+#' This function implement a simple bootstrap of the residuals from the mack model with a one-year reserving risk point of view.
+#'
+#' @param Triangle A simple triangle from che Chain-ladder package.
+#' @param B numeric. The number of bootstrap samples you want
+#' @param distNy character. Distribution of next-year incremental payments. Either "normal" (default) or "residuals"
+#' @param seuil numeric. Seuil for residuals exclusion. A value of NA (default) will prevent
+#' @param zonnage logical. Do you want to zonne the residuals ?
+#'
+#' @return A BootMackChainLadder object with a lot of information about the bootstrapping. You can plot it, print it, str it to extract information.
+#' @export
+#'
+#' @import magrittr
+#'
+#' @examples
+#' data(ABC)
+#' BootMackChainLader(Triangle = ABC, B = 100, distNy = "residuals", seuil = 2)
 BootMackChainLadder <- function(Triangle,B=100,distNy="normal",seuil=NA,zonnage=FALSE){
 
   if(!(distNy %in% c("normal","residuals"))){stop("DistNy Parameter must be 'normal' (classical MW) or 'residuals'")}
@@ -324,23 +474,37 @@ BootMackChainLadder <- function(Triangle,B=100,distNy="normal",seuil=NA,zonnage=
   rez <- .formatOutput(n,Triangle,diag,DF,sigma,residuals,DFBoot,Ultimates,IBNR,NyCum,NyInc,NyDF,NyUltimates,NyIBNR)
   return(rez)
 }
-mean.BootMackChainLadder    <- function(BMCL){
+
+#' mean.BootMackChainLadder
+#'
+#' Calculate mean statiscics from the bootstraped mack model
+#'
+#' @param x A BootMackChainLadder Object
+#'
+#' @return Three data.frames containing data per origin year ("ByOrigin"), by developpement year ("ByDev) and globaly ("Totals)
+#' @export
+#'
+#' @examples
+#' data(ABC)
+#' BMCL <- BootMackChainLader(Triangle = ABC, B = 100, distNy = "residuals", seuil = 2)
+#' mean(BMCL)
+mean.BootMackChainLadder    <- function(x,...){
 
   # the purpose of this function is to return means of everything BMCL returned.
   ByOrigin = data.frame(
-    Latest = BMCL$Latest,
-    Ultimates = BMCL$Ultimates,
-    IBNR = BMCL$IBNR,
-    NyCum  = c(BMCL$Ultimates[1],colMeans(BMCL$NyCum)),
-    NyInc =c(0,colMeans(BMCL$NyInc)),
-    NyUltimates = colMeans(BMCL$NyUltimates),
-    NyIBNR = colMeans(BMCL$NyIBNR)
+    Latest = x$Latest,
+    Ultimates = x$Ultimates,
+    IBNR = x$IBNR,
+    NyCum  = c(x$Ultimates[1],colMeans(x$NyCum)),
+    NyInc =c(0,colMeans(x$NyInc)),
+    NyUltimates = colMeans(x$NyUltimates),
+    NyIBNR = colMeans(x$NyIBNR)
   )
   row.names(ByOrigin) = rev(row.names(ByOrigin))
 
   ByDev = data.frame(
-    DFBoot = colMeans(BMCL$DFBoot),
-    NyDF = colMeans(BMCL$NyDF)
+    DFBoot = colMeans(x$DFBoot),
+    NyDF = colMeans(x$NyDF)
   )
 
   Totals = colSums(ByOrigin)
@@ -348,6 +512,19 @@ mean.BootMackChainLadder    <- function(BMCL){
 
   return(list(ByOrigin = ByOrigin, ByDev = ByDev,Totals = Totals))
 }
+#' CDR.BootMackChainLadder
+#'
+#' Calculate the one-year Claim developpement results from the bootstrapped mack model.
+#'
+#' @param BMCL A BootMackChainLadder Object
+#'
+#' @return A data.Frame with one-year results from the bootstrap.
+#' @export
+#'
+#' @examples
+#' data(ABC)
+#' BMCL <- BootMackChainLader(Triangle = ABC, B = 100, distNy = "residuals", seuil = 2)
+#' CDR(BMCL)
 CDR.BootMackChainLadder     <- function(BMCL){
   Totals = data.frame(IBNR = sum(BMCL$IBNR),`CDR(1)S.E.` = sd(rowSums(BMCL$NyIBNR)))
   row.names(Totals) <- "Totals"
@@ -355,23 +532,75 @@ CDR.BootMackChainLadder     <- function(BMCL){
   rbind(setNames(data.frame(IBNR = BMCL$IBNR,`CDR(1)S.E.` = apply(BMCL$NyIBNR,2,sd)),names(Totals)), Totals)
 
 }
-summary.BootMackChainLadder <- function(BMCL){
-  mean <- mean(BMCL)
+#' summary.BootMackChainLadder
+#'
+#'  Give summary statistics about the bootstrap.
+#'
+#' @param object A BootMackChainLadder Object
+#'
+#' @return NULL
+#' @export
+#'
+#' @details
+#' The function only print information about the model, and return the model (usefull in pipes).
+#'
+#' @examples
+#' data(ABC)
+#' BMCL <- BootMackChainLader(Triangle = ABC, B = 100, distNy = "residuals", seuil = 2)
+#' summary(BMCL)
+summary.BootMackChainLadder <- function(object,...){
+  mean <- mean(object)
   cat("This is a BootMackChainLadder model \n\n")
   cat("Detailed results by Origin years : \n")
   print(format(mean$ByOrigin,format="i", nsmall=0, big.mark=","))
   #print(mean$ByDev)
   cat("\n Totals across origin years : \n")
   print(format(t(mean$Totals),format="i", nsmall=0, big.mark=","))
-  return(NULL)
+  return(object)
 }
-print.BootMackChainLadder   <- function(BMCL){
-  print(summary(BMCL))
-  return(NULL)
+#' print.BootMackChainLadder
+#'
+#' @param BMCL
+#'
+#' @return the BMCL object
+#' @export
+#'
+#' @examples
+#' data(ABC)
+#' BMCL <- BootMackChainLader(Triangle = ABC, B = 100, distNy = "residuals", seuil = 2)
+#' print(BMCL)
+print.BootMackChainLadder   <- function(x,...){
+  print(summary(x))
+  return(x)
 }
 
 
-##### Multi Boot Back Chain Ladder #####
+##### Multi Boot Back Chain Ladder                                                   #####
+#' MultiBootMackChainLadder
+#'
+#' The multi boot mack chain ladder algorythme computes todays and next-year common estimates on a portefolio of several triangles, following closely a synchronised version of BootMackChainLadder.
+#'
+#' @param triangles A List of Triangles objects of the same size.
+#' @param B The numebr of boostrap replicates
+#' @param distNy The process distribution for next year increments. Either "normal" (default), "residuals.bycolumn","residuals.global" or "residuals". See details.
+#' @param names enventual names of the different triangles. IF set to NULL, the procedure will try to get names from the triangles list.
+#' @param seuil Eventual exclusions limit for residuals. Set to NA (default) to avoid excluding anything.
+#'
+#' @details
+#'
+#' This model uses the fact that the Mack model can be seen as a quasi-glm to found nice residuals. Bootstrap thoose residuals on the upper-left triangle allows to get bootstrap distribution of today's estimatins ( reserves, ultimates, ...).
+#'
+#' In each bootstrap resample, the function use the specified process distrubiton to simulate next-year payments. If a normal law is used, it follows boumezoued et all and converges to the Mer-wuthrich fromula in the Braun model. If set to residuals, the convergence is there but not to the same result since no specific law is supposed for residuals.
+#'
+#' @return a MBMCL object containing a list of BMCL objects and a little more.
+#' @export
+#'
+#' @seealso BootMackChainLadder
+#'
+#' @examples
+#' data(ABC)
+#' triangles <- list(tri1 = ABC, tri2 = ABC, tri3 = ABC)
+#' MultiBootmackChainLadder(triangles,100)
 MultiBootMackChainLadder    <- function(triangles,B=100,distNy = "normal", names=NULL,seuil=NA){
   if(!(distNy %in% c("normal","residuals.bycolumn","residuals.global","residuals"))){stop("DistNy Parameter must be 'normal' (classical MW) or 'residuals'")}
   # Cf "One-year reserve risk including a tail factor : closed formula and bootstrapp aproach, 2011"
@@ -506,8 +735,22 @@ MultiBootMackChainLadder    <- function(triangles,B=100,distNy = "normal", names
   return(rez)
 
 }
-mean.MultiBootMackChainLadder <- function(MBMCL){
-    margins <- lapply(MBMCL,mean)
+#' mean.MultiBootMackChainLadder
+#'
+#' @param x A MultiBootMackChainLadder Object
+#'
+#' @return Data frames containing mean informations.
+#' @export
+#'
+#' @seealso MultiBootMackChainLadder, mean.BootMackChainLadder
+#'
+#' @examples
+#' data(ABC)
+#' triangles <- list(tri1 = ABC, tri2 = ABC, tri3 = ABC)
+#' MBMCL <- MultiBootmackChainLadder(triangles,100)
+#' mean(MBMCL)
+mean.MultiBootMackChainLadder <- function(x,...){
+    margins <- lapply(x,mean)
 
     ByOrigin <- lapply(margins,`[[`,"ByOrigin")
     Latest <- lapply(ByOrigin,`[[`,"Latest")
@@ -529,6 +772,20 @@ mean.MultiBootMackChainLadder <- function(MBMCL){
     Totals$Tot <- rowSums(Totals)
     return(list(ByOrigin = ByOr,Totals = Totals))
 }
+#' CDR.MultiBootMackChainLadder
+#'
+#' @param MBMCL A MultiBootMackChainLadder Object
+#'
+#' @return Informations about CDR and IBNRS.
+#' @export
+#'
+#' @seealso MultiBootMackChainLadder, CDR.BootMackChainLadder
+#'
+#' @examples
+#' data(ABC)
+#' triangles <- list(tri1 = ABC, tri2 = ABC, tri3 = ABC)
+#' MBMCL <- MultiBootmackChainLadder(triangles,100)
+#' CDR(MBMCL)
 CDR.MultiBootMackChainLadder     <- function(MBMCL){
 
   IBNR <- as.data.frame(lapply(MBMCL,`[[`,"IBNR"))
@@ -551,6 +808,19 @@ CDR.MultiBootMackChainLadder     <- function(MBMCL){
 
   return(list(ByOrigin = ByOrigin,Totals=Totals))
 }
+#' Title
+#'
+#' @param MBMCL A MultiBootMackChainLadder Object
+#' @param ByOrigin If Set to TRUE, Next year IBNRS will be rgiveng with per-origin details.
+#'
+#' @return Data frame with next year informations.
+#' @export
+#'
+#' @examples
+#' data(ABC)
+#' triangles <- list(tri1 = ABC, tri2 = ABC, tri3 = ABC)
+#' MBMCL <- MultiBootmackChainLadder(triangles,100)
+#' NyIBNR(MBMCL)
 NyIBNR <- function(MBMCL,ByOrigin = FALSE){
   NyIBNR <- lapply(MBMCL,`[[`,"NyIBNR")
   NyIBNR$Tot <- Reduce("+", NyIBNR)
@@ -559,15 +829,46 @@ NyIBNR <- function(MBMCL,ByOrigin = FALSE){
   }
   return(as.data.frame(NyIBNR))
 }
+#' Title
+#'
+#' @param MBMCL A MultiBootMackChainLadder Object
+#' @param ... Elements to be passed to the cor function
+#'
+#' @return A corelation matrix of next-year IBNRs.
+#' @export
+#'
+#' @examples
+#' data(ABC)
+#' triangles <- list(tri1 = ABC, tri2 = ABC, tri3 = ABC)
+#' MBMCL <- MultiBootmackChainLadder(triangles,100)
+#' Corel(MBMCL)
 Corel <- function(MBMCL,...){
   NyIBNR <- NyIBNR(MBMCL)
   NyIBNR$Tot <- NULL
-  return(cor(NyIBNR))
+  return(cor(NyIBNR,...))
 }
 
 
-##### Specific structure for my memoire #####
+##### Specific structure for my memoire                                              #####
 
+#' Analyse
+#'
+#' This function perform the analysis from my memoire on a set of triangles.
+#'
+#'
+#' @param triangles the set of triangles. Should be a named list with 3 triangles for PSAPs and the last one for PSNEMs.
+#' @param B Number of bootstrap replicates
+#' @param distNy1 Parameter for the MultiBookMackChainLadder part (psaps) of the procedure.
+#' @param distNy2 Parameter for the BookMackChainLadder part (psnems) of the procedure.
+#' @param seuil Parameter for both parts.
+#' @param pdd Should be a data.frame with one row and 3 columns.
+#' @param Dossiers Working folders informaitons.
+#' @param Zonnage.capi Should the capitalisation bootstrap be zonned ?
+#'
+#' @return an "Etudeprincipale" object wich has only a print method and contains everything (try to str it !)
+#' @export
+#'
+#' @examples
 Analyse <- function(triangles,B=100,distNy1="normal",distNy2="normal",seuil=NA,pdd = NA, Dossiers = NA,Zonnage.capi=FALSE){
 
   # Achtung : Le 4ème triangle doit être celui en capi.
@@ -652,7 +953,15 @@ Analyse <- function(triangles,B=100,distNy1="normal",distNy2="normal",seuil=NA,p
 
 }
 
-print.Etudeprincipale <- function(x){
+#' print.Etudeprincipale
+#'
+#' @param x An EtudePrincipale Object
+#'
+#' @return returns x after aving printed a lot of informations about it.
+#' @export
+#'
+#' @examples
+print.Etudeprincipale <- function(x,...){
   cat("Ceci est une etude bootstrap synchro en LOB8. \n\n1. Parametres :\n \tB =",x$B,
       "\n\tdistNy1 = ",x$distNy1,
       "\n\tdistNy2 = ",x$distNy2)
@@ -699,8 +1008,24 @@ print.Etudeprincipale <- function(x){
 
 
   cat("\n\n7. Pourcentage de résidus en dehors de (-2;2) : ",table(x$analyse.residus$is.ok) %>% {.[1]/(.[1]+.[2])})
+  return(x)
 }
 
+#' plots of EtudePrincipale
+#'
+#'  A serie of plotting functions exists for an etudeprincipale.
+#'  Some more will probably be added later.
+#'
+#'
+#' @param x A EtudePrincipale object
+#'
+#' @return dependns. sometimes thees functions returns a plot.
+#' @export
+#'
+#' @details Following plotting functions are avaliable : plot_factors_density plot_reserve_density plot_ibnr_density plot_burn_in plot_rho plot_resid_norm plot_resid_dens plot_resid_dens2 plot_resid_stabilite plot_resid_margins plot_cdr_mw plot_cadences_capi
+#'
+#' @aliases plot_factors_density plot_reserve_density plot_ibnr_density plot_burn_in plot_rho plot_resid_norm plot_resid_dens plot_resid_dens2 plot_resid_stabilite plot_resid_margins plot_cdr_mw plot_cadences_capi
+#' @examples
 plot_factors_density <- function(x){
 
   # graphique des cadences de développement bootstrapées
@@ -956,7 +1281,56 @@ plot_cadences_capi <- function(x,type =2){
   return(p)
 }
 
-##### Tests #####
+
+#' .creer_nom_fichier
+#'
+#' @param graves TRue or false
+#' @param seuil numeric or NA
+#' @param type residuals or normal
+#' @param data Reglements or Charges
+#' @param annee 2014, 2015, 2016 and 2017 are availiable
+#' @param zonnage True or False (zonning the capitalisation residuals)
+#'
+#' @return The file name (a string)
+#' @export
+#'
+#' @examples
+.creer_nom_fichier <- function(graves,seuil,type,data,annee,zonnage){
+  # enplacement du fichier de sauvegarde :
+  if(graves){
+    .grv = "avecGraves"
+  } else {
+    .grv = "sansGraves"
+  }
+  if(!is.na(seuil)){
+    .seuil = paste0("SeuilDe",seuil)
+  } else {
+    .seuil = "sansSeuil"
+  }
+  if(type == "residuals"){
+    .resid = "typeRezi"
+  } else {
+    if(type == "normal"){
+      .resid = "typeNorn"
+    }
+  }
+  if(data == "Reglements"){
+    .data = "Reg"
+  } else {
+    if(data == "Charges"){
+      .data = "Chg"
+    }
+  }
+  if(zonnage){
+    .zon = "avecZonne"
+  } else {
+    .zon = "sansZonne"
+  }
+  .fichier.resultats = paste0(paste(.data,annee,.resid,.grv,.seuil,.zon,sep="_"),".Rdata")
+  return(.fichier.resultats)
+}
+
+##### Tests                                                                          #####
 #
 #
 # # test :
@@ -1019,3 +1393,5 @@ plot_cadences_capi <- function(x,type =2){
 # sigma2 <- CDR(MBMCL2)$Total["Tot",2]/CDR(MBMCL2)$Total["Tot",1]
 # sigma3 <- CDR(MBMCL3)$Total["Tot",2]/CDR(MBMCL3)$Total["Tot",1]
 #
+
+##### Fin #####
