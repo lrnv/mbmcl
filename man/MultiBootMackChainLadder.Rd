@@ -5,7 +5,7 @@
 \title{MultiBootMackChainLadder}
 \usage{
 MultiBootMackChainLadder(triangles, B = 100, distNy = "normal",
-  names = NULL, seuil = NA)
+  names = NULL, seuil = NA, stab = NA)
 }
 \arguments{
 \item{triangles}{A List of Triangles objects of the same size.}

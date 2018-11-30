@@ -5,7 +5,7 @@
 \title{Boot Mack Chain Ladder model}
 \usage{
 BootMackChainLadder(Triangle, B = 100, distNy = "normal", seuil = NA,
-  zonnage = FALSE)
+  zonnage = FALSE, BF.premiums = NULL, BF.param = c(5, 5), stab = NA)
 }
 \arguments{
 \item{Triangle}{A simple triangle from che Chain-ladder package.}
@@ -17,6 +17,10 @@ BootMackChainLadder(Triangle, B = 100, distNy = "normal", seuil = NA,
 \item{seuil}{numeric. Seuil for residuals exclusion. A value of NA (default) will prevent}
 
 \item{zonnage}{logical. Do you want to zonne the residuals ?}
+
+\item{BF.premiums}{les primes pourle BF}
+
+\item{BF.param}{un vectuer de deux entiers représentant le nombre d'année ou la moyenne de LR sera prise pour le BF et le nombre d'année d'application du BF.}
 }
 \value{
 A BootMackChainLadder object with a lot of information about the bootstrapping. You can plot it, print it, str it to extract information.

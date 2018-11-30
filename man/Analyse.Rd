@@ -5,7 +5,9 @@
 \title{Analyse}
 \usage{
 Analyse(triangles, B = 100, distNy1 = "normal", distNy2 = "normal",
-  seuil = NA, pdd = NA, Dossiers = NA, Zonnage.capi = FALSE)
+  seuil = NA, pdd = NA, Dossiers = NA, Zonnage.capi = FALSE,
+  BF.capi = NULL, BF.moy.long = 5, BF.appli.long = 5, stab.repart = NA,
+  stab.capi = NA, light_output = FALSE)
 }
 \arguments{
 \item{triangles}{the set of triangles. Should be a named list with 3 triangles for PSAPs and the last one for PSNEMs.}
@@ -23,6 +25,22 @@ Analyse(triangles, B = 100, distNy1 = "normal", distNy2 = "normal",
 \item{Dossiers}{Working folders informaitons.}
 
 \item{Zonnage.capi}{Should the capitalisation bootstrap be zonned ?}
+
+\item{BF.capi}{Premium Vector for the bornhuter-fergusson adjustement of capi (psnem).}
+
+\item{BF.moy.long}{Nombre d'année de moyenne pour le BF.}
+
+\item{BF.appli.long}{Nombre d'année d'application du BF.}
+
+\item{stab.repart}{Longeur des cadences avant stabilisation. Mettre a 20 pour garder les 20 premier coef CL, à NA pour les garder tous.}
+
+\item{stab.capi}{Longeur des cadences avant stabilisation en capitalisation. Mettre à 20 pour garder les 20 premiers coef CL, à NA pour les garder tous.}
+
+\item{light_output}{Si vous choisissez cela, certains outputs qui sont reconstruictibles depuis les autres ne seront pas fournis, et les résidus des triangles en seront pas fournis dans chaque modélisation. 
+
+
+Cette fonction s'utilise de la manière suivante : 
+Fournisser une liste de 4 triangles, dont 3 en survenance-inventaire et un en droc-sruv, nommé RCDO. Frounissez les autres paramètres et admirez le résutlat ! (pas le temps d'en écrire plus, sorry...)}
 }
 \value{
 an "Etudeprincipale" object wich has only a print method and contains everything (try to str it !)
