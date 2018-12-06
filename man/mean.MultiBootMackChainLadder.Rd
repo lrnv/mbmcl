@@ -15,6 +15,9 @@ Data frames containing mean informations.
 \description{
 mean.MultiBootMackChainLadder
 }
+\details{
+Return mean informations about the MBMCL computed model. Gives the mean values of estimate quantities in a MBMCL bootstrap.
+}
 \examples{
 data(ABC)
 triangles <- list(tri1 = ABC, tri2 = ABC, tri3 = ABC)

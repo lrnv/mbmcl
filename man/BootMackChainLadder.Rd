@@ -14,16 +14,16 @@ BootMackChainLadder(Triangle, B = 100, distNy = "normal", seuil = NA,
 
 \item{distNy}{character. Distribution of next-year incremental payments. Either "normal" (default) or "residuals"}
 
-\item{seuil}{numeric. Seuil for residuals exclusion. A value of NA (default) will prevent}
+\item{seuil}{numeric. A value of NA (default) will prevent exclusion of residuals, and a numerci value (e.g 2) will exclude all residuals that have an absolution value greater than 2.}
 
-\item{zonnage}{logical. Do you want to zonne the residuals ?}
+\item{zonnage}{logical. Do you want to force residuals to be resampled inside zonnes ?}
 
-\item{BF.premiums}{les primes pourle BF}
+\item{BF.premiums}{If a Bornhuetter-fergusson is needed, input a vector of ultimates premiums here. Otherwise, the BF code will not be triggered.}
 
-\item{BF.param}{un vectuer de deux entiers représentant le nombre d'année ou la moyenne de LR sera prise pour le BF et le nombre d'année d'application du BF.}
+\item{BF.param}{A vector of 2 interger that represent (respectively) the number of year of averaging Loss-ratios for the bornhuetter fergusson and then the number of year of applying the bornhuetter fergusson to.}
 }
 \value{
-A BootMackChainLadder object with a lot of information about the bootstrapping. You can plot it, print it, str it to extract information.
+A BootMackChainLadder object with a lot of information about the bootstrapping. You can plot it, print it and str it to extract information.
 }
 \description{
 This function implement a simple bootstrap of the residuals from the mack model with a one-year reserving risk point of view.

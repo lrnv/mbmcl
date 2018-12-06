@@ -4,16 +4,19 @@
 \alias{CDR.MultiBootMackChainLadder}
 \title{CDR.MultiBootMackChainLadder}
 \usage{
-\method{CDR}{MultiBootMackChainLadder}(MBMCL)
+\method{CDR}{MultiBootMackChainLadder}(x)
 }
 \arguments{
-\item{MBMCL}{A MultiBootMackChainLadder Object}
+\item{x}{A MultiBootMackChainLadder Object}
 }
 \value{
 Informations about CDR and IBNRS.
 }
 \description{
 CDR.MultiBootMackChainLadder
+}
+\details{
+Give information about next year volatility for the MBMCL model.
 }
 \examples{
 data(ABC)

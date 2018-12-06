@@ -1,12 +1,8 @@
 #' @import ChainLadder
-#' @import tidyverse
-#' @import magrittr
-#' @import dplyr
-#' @import purrr
+# @import tidyverse
+# @import magrittr
+# @import dplyr
 #' @import mvtnorm
-#' @import ggplot2
-#' @import gridExtra
-#' @import dplyr
 NULL
 
 
@@ -288,145 +284,6 @@ NULL
   class(result) <- c("BootMackChainLadder", class(result))
   return(result)
 }
-.passage.a.lultime <- function(tri.ds, cad) {
-  # passage a l'ultime :
-  I <- dim(tri.ds)[[1]]
-  tri.ds.ult <- tri.ds
-  for (i in 1:I) {
-    for (j in 1:(I - i + 1)) {
-      tri.ds.ult[i, j] <- tri.ds[i, j] / cad[i + j - 1]
-    }
-  }
-
-  # On retourne le triangle :
-  return(tri.ds.ult)
-}
-.erreur.passage.ultime <- function(tri.ds.ult, tri.si, tri.ds) {
-  # Clacul de l'erreur du au passage a l'ultime :
-  var1 <- tri.ds.ult %>% .diag() %>% sum()
-  var2 <- tri.ds %>% sum(na.rm = TRUE)
-  var3 <- tri.si %>% .ibnr() %>% sum()
-
-  return(var1 - var2 - var3)
-}
-.check.triangle <- function(triangle, dim=dim(triangle)) {
-  # FOnction de verification des dimentions d'un triangle :
-  lignes <- row.names(triangle) %>%
-    as.numeric() %>%
-    {
-      add(., -.[1])
-    } %>%
-    {
-      prod(. == (0:(length(.) - 1)))
-    } # Retourne TRUE si les lignes sont bonnes, faux sinon.
-
-  collonnes <- colnames(triangle) %>%
-    as.numeric() %>%
-    {
-      add(., -.[1])
-    } %>%
-    {
-      prod(. == (0:(length(.) - 1)))
-    } # Retourne TRUE si les collonnes sont bonnes, faux sinon.
-
-  return(lignes & collonnes) # si le retour est faux, il faut fixer le triangle.
-}
-.fix.triangle.dimention <- function(triangle, taille=27, replaceNAbyZero = FALSE, deja_cumule=TRUE) {
-
-
-
-  # des zero a la place des NA :
-  triangle[is.na(triangle)] <- 0
-
-  if (deja_cumule) {
-    # Passage en incremental si et seulement si ca renvois pas une erreur :
-    lastfunc <- function(x) {
-      incr2cum(x, na.rm = TRUE)
-    }
-    triangle <- tryCatch(expr = {
-      cum2incr(triangle)
-    }, error = function(e) {
-      lastfunc <<- function(x) {
-        x
-      }
-      triangle
-    })
-  }
-
-
-
-
-  tri <- matrix(NA, nrow(triangle), taille)
-  tri2 <- matrix(NA, taille, taille)
-
-  # Occupons nous d'abords de completer les colonnes :
-  for (i in 1:taille) {
-    if (as.character(i - 1) %in% colnames(triangle)) {
-      tri[, i] <- triangle[, colnames(triangle) == as.character(i - 1)]
-    } else {
-      tri[, i] <- rep(NA, nrow(triangle))
-    }
-  }
-
-  # puis completons les lignes :
-  zero <- 1991
-  for (i in 1:taille) {
-    if ((i - 1) %in% (as.numeric(row.names(triangle)) - zero)) {
-      tri2[i, ] <- tri[which((as.numeric(row.names(triangle)) - zero) %in% (i - 1)), ]
-    } else {
-      tri2[i, ] <- rep(NA, taille)
-    }
-  }
-
-  # on reconstruit le triangle, on remet les noms en place et on retourne :
-  tri <- as.triangle(tri2)
-
-  # On remplace tout les NA sous la diagonale par des 0 :
-  for (i in 1:taille) {
-    for (j in 1:(taille - i + 1)) {
-      if (is.na(tri[i, j])) {
-        tri[i, j] <- 0
-      }
-    }
-  }
-  for (i in 1:taille) {
-    for (j in 1:taille) {
-      if (i + j > taille + 1) {
-        tri[i, j] <- NA
-      }
-    }
-  }
-
-  # on remet en place les noms de lignes et de colonnes :
-  row.names(tri) <- as.character(1991:(1991 + taille - 1))
-  colnames(tri) <- as.character(0:(taille - 1))
-
-
-  if (deja_cumule) {
-    tri <- lastfunc(tri)
-  }
-  # on cumule et on renvois :
-  return(tri)
-}
-.cumsd <- function(x) {
-  return(sapply(seq_along(x), function(k, z) sd(z[1:k]), z = x))
-}
-.cumcorel <- function(x) {
-  noms <- names(x)
-  nomMat <- map(1:ncol(x), ~ map(1:ncol(x), function(y) {
-    paste0(noms[.x], "-", noms[y])
-  }))
-  cor <- list()
-  for (i in 1:nrow(x)) {
-    cor[[i]] <- cor(x[1:i, ]) %>% as.vector()
-  }
-  cor %>%
-    {
-      do.call(rbind.data.frame, .)
-    } %>%
-    set_names(nomMat %>% unlist()) %>%
-    return()
-}
 .BF.Ultimates <- function(ultimes,primes,cadence,longeur_moyenne=5,longeur_application=5){
   # la fonction de base est de prendre un BF 5ans 5ans. On peut le changer ici. 
   n <- length(ultimes)
@@ -447,12 +304,17 @@ NULL
 #' @param Triangle A simple triangle from che Chain-ladder package.
 #' @param B numeric. The number of bootstrap samples you want
 #' @param distNy character. Distribution of next-year incremental payments. Either "normal" (default) or "residuals"
-#' @param seuil numeric. Seuil for residuals exclusion. A value of NA (default) will prevent
-#' @param zonnage logical. Do you want to zonne the residuals ?
-#' @param BF.premiums les primes pourle BF
-#' @param BF.param un vectuer de deux entiers représentant le nombre d'année ou la moyenne de LR sera prise pour le BF et le nombre d'année d'application du BF. 
+#' @param seuil numeric. A value of NA (default) will prevent exclusion of residuals, and a numerci value (e.g 2) will exclude all residuals that have an absolution value greater than 2.
+#' @param zonnage logical. Do you want to force residuals to be resampled inside zonnes ?
+#' @param BF.premiums If a Bornhuetter-fergusson is needed, input a vector of ultimates premiums here. Otherwise, the BF code will not be triggered.
+#' @param BF.param A vector of 2 interger that represent (respectively) the number of year of averaging Loss-ratios for the bornhuetter fergusson and then the number of year of applying the bornhuetter fergusson to. 
 #' 
-#' @return A BootMackChainLadder object with a lot of information about the bootstrapping. You can plot it, print it, str it to extract information.
+#' @details 
+#' 
+#' The bootstrap that is implemented here consist in a resampling of residuals obtained by the Mack model (or simulated standard normal residuals if you choose so), and on thoose samples we construct a one-year point of view of the mack model, allowing us to bootstrap one-year quantities like the CDR or next year IBNRS. Using thisfunction properly, you could check that the proposed bootstrap is convergent with the merz-wuthrich formula if you take standard normal résiduals, but not otherwise. 
+#' 
+#' 
+#' @return A BootMackChainLadder object with a lot of information about the bootstrapping. You can plot it, print it and str it to extract information.
 #' @export
 #'
 #' @import magrittr
@@ -713,16 +575,25 @@ print.BootMackChainLadder <- function(x, ...) {
 #' The multi boot mack chain ladder algorythme computes todays and next-year common estimates on a portefolio of several triangles, following closely a synchronised version of BootMackChainLadder.
 #'
 #' @param triangles A List of Triangles objects of the same size.
-#' @param B The numebr of boostrap replicates
-#' @param distNy The process distribution for next year increments. Either "normal" (default), "residuals.bycolumn","residuals.global" or "residuals". See details.
-#' @param names enventual names of the different triangles. IF set to NULL, the procedure will try to get names from the triangles list.
+#' @param B The number of boostrap replicates
+#' @param distNy The process distribution for next year increments. Either "normal" (default), "residuals.bycolumn","residuals.global" or "residuals". See details below.
+#' @param names enventual names of the different triangles. IF set to NULL, the procedure will try to get names from the triangles list (first argument)
 #' @param seuil Eventual exclusions limit for residuals. Set to NA (default) to avoid excluding anything.
 #'
 #' @details
 #'
-#' This model uses the fact that the Mack model can be seen as a quasi-glm to found nice residuals. Bootstrap thoose residuals on the upper-left triangle allows to get bootstrap distribution of today's estimatins ( reserves, ultimates, ...).
+#' This function calculates, on a list of triangles, a synchronised bootstrap in the Mack model for the triangles. 
+#' The One-year point of view is also calculated. 
+#' It returns a specific S3 object, on wich you can use the functionsmean, CDR, NyIBNR, Corel provided by the package. 
 #'
-#' In each bootstrap resample, the function use the specified process distrubiton to simulate next-year payments. If a normal law is used, it follows boumezoued et all and converges to the Mer-wuthrich fromula in the Braun model. If set to residuals, the convergence is there but not to the same result since no specific law is supposed for residuals.
+#' This model uses the fact that the Mack model can be seen as a quasi-glm, and therefore provide resiuals.
+#' Bootstrapping thoose residuals on the upper-left triangle allows to get bootstrap distribution of today's estimations (reserves, ultimates, ...).
+#' Furthermore, if you simulate net year payments with a given process ditribution in each simulation, it gives 1 year results.
+#' 
+#'
+#' If distNy = "normal", it follows *boumezoued & al* and converges to the Merz-Wüthrich formula in the Braun model. 
+#' If distNy = "residuals", it also converges strongly but NOT to the Merz-Wûthrich formula. Same for ohter possibilities. 
+#' Notes that if you choose distNy = "residuals.bycolumn", the residuals will be resampled inside each column and not accross columns. Setting distNy = "residuals.global" or "residuals" triggers the same code.
 #'
 #' @return a MBMCL object containing a list of BMCL objects and a little more.
 #' @export
@@ -943,6 +814,10 @@ MultiBootMackChainLadder <- function(triangles, B=100, distNy = "normal", names=
 #'
 #' @param x A MultiBootMackChainLadder Object
 #'
+#' @details 
+#' 
+#' Return mean informations about the MBMCL computed model. Gives the mean values of estimate quantities in a MBMCL bootstrap. 
+#'
 #' @return Data frames containing mean informations.
 #' @export
 #'
@@ -978,7 +853,11 @@ mean.MultiBootMackChainLadder <- function(x, ...) {
 }
 #' CDR.MultiBootMackChainLadder
 #'
-#' @param MBMCL A MultiBootMackChainLadder Object
+#' @param x A MultiBootMackChainLadder Object
+#'
+#' @details 
+#' 
+#' Give information about next year volatility for the MBMCL model.
 #'
 #' @return Informations about CDR and IBNRS.
 #' @export
@@ -990,13 +869,13 @@ mean.MultiBootMackChainLadder <- function(x, ...) {
 #' triangles <- list(tri1 = ABC, tri2 = ABC, tri3 = ABC)
 #' MBMCL <- MultiBootmackChainLadder(triangles,100)
 #' CDR(MBMCL)
-CDR.MultiBootMackChainLadder <- function(MBMCL) {
-  IBNR <- as.data.frame(lapply(MBMCL, `[[`, "IBNR"))
+CDR.MultiBootMackChainLadder <- function(x) {
+  IBNR <- as.data.frame(lapply(x, `[[`, "IBNR"))
   names(IBNR) <- paste0("IBNR.", names(IBNR))
   IBNR$IBNR.Tot <- rowSums(IBNR)
 
 
-  NyIBNR <- lapply(MBMCL, `[[`, "NyIBNR")
+  NyIBNR <- lapply(x, `[[`, "NyIBNR")
   NyIBNR$Tot <- Reduce("+", NyIBNR)
   CDR <- as.data.frame(lapply(NyIBNR, function(x) {
     apply(x, 2, sd)
@@ -1015,9 +894,13 @@ CDR.MultiBootMackChainLadder <- function(MBMCL) {
 }
 #' Title
 #'
-#' @param MBMCL A MultiBootMackChainLadder Object
+#' @param x A MultiBootMackChainLadder Object
 #' @param ByOrigin If Set to TRUE, Next year IBNRS will be rgiveng with per-origin details.
 #'
+#' @details 
+#' 
+#' Gives a data.frame with next-year payments informations found by the MBMCL model.
+#' 
 #' @return Data frame with next year informations.
 #' @export
 #'
@@ -1026,8 +909,8 @@ CDR.MultiBootMackChainLadder <- function(MBMCL) {
 #' triangles <- list(tri1 = ABC, tri2 = ABC, tri3 = ABC)
 #' MBMCL <- MultiBootmackChainLadder(triangles,100)
 #' NyIBNR(MBMCL)
-NyIBNR <- function(MBMCL, ByOrigin = FALSE) {
-  NyIBNR <- lapply(MBMCL, `[[`, "NyIBNR")
+NyIBNR.MultiBootMackChainLadder <- function(x, ByOrigin = FALSE) {
+  NyIBNR <- lapply(x, `[[`, "NyIBNR")
   NyIBNR$Tot <- Reduce("+", NyIBNR)
   if (!ByOrigin) {
     NyIBNR <- lapply(NyIBNR, rowSums)
@@ -1036,9 +919,13 @@ NyIBNR <- function(MBMCL, ByOrigin = FALSE) {
 }
 #' Title
 #'
-#' @param MBMCL A MultiBootMackChainLadder Object
+#' @param x A MultiBootMackChainLadder Object
 #' @param ... Elements to be passed to the cor function
 #'
+#' @details 
+#' 
+#' Gives the correlations between the next-year IBNRs of the several triangles under the MBMCL model.
+#' 
 #' @return A corelation matrix of next-year IBNRs.
 #' @export
 #'
@@ -1047,639 +934,8 @@ NyIBNR <- function(MBMCL, ByOrigin = FALSE) {
 #' triangles <- list(tri1 = ABC, tri2 = ABC, tri3 = ABC)
 #' MBMCL <- MultiBootmackChainLadder(triangles,100)
 #' Corel(MBMCL)
-Corel <- function(MBMCL, ...) {
-  NyIBNR <- NyIBNR(MBMCL)
+Corel.MultiBootMackChainLadder <- function(x, ...) {
+  NyIBNR <- NyIBNR(x)
   NyIBNR$Tot <- NULL
   return(cor(NyIBNR, ...))
 }
-
-
-##### Specific structure for my memoire                                              #####
-
-#' Analyse
-#'
-#' This function perform the analysis from my memoire on a set of triangles.
-#'
-#'
-#' @param triangles the set of triangles. Should be a named list with 3 triangles for PSAPs and the last one for PSNEMs.
-#' @param B Number of bootstrap replicates
-#' @param distNy1 Parameter for the MultiBookMackChainLadder part (psaps) of the procedure.
-#' @param distNy2 Parameter for the BookMackChainLadder part (psnems) of the procedure.
-#' @param seuil Parameter for both parts.
-#' @param pdd Should be a data.frame with one row and 3 columns.
-#' @param Dossiers Working folders informaitons.
-#' @param Zonnage.capi Should the capitalisation bootstrap be zonned ?
-#' @param BF.capi Premium Vector for the bornhuter-fergusson adjustement of capi (psnem).
-#' @param BF.moy.long Nombre d'année de moyenne pour le BF. 
-#' @param BF.appli.long Nombre d'année d'application du BF. 
-#' @param stab.repart Longeur des cadences avant stabilisation. Mettre a 20 pour garder les 20 premier coef CL, à NA pour les garder tous. 
-#' @param stab.capi Longeur des cadences avant stabilisation en capitalisation. Mettre à 20 pour garder les 20 premiers coef CL, à NA pour les garder tous. 
-#' @param light_output Si vous choisissez cela, certains outputs qui sont reconstruictibles depuis les autres ne seront pas fournis, et les résidus des triangles en seront pas fournis dans chaque modélisation. 
-#' 
-#' 
-#' Cette fonction s'utilise de la manière suivante : 
-#' Fournisser une liste de 4 triangles, dont 3 en survenance-inventaire et un en droc-sruv, nommé RCDO. Frounissez les autres paramètres et admirez le résutlat ! (pas le temps d'en écrire plus, sorry...)
-#' 
-#' 
-#'
-#' @return an "Etudeprincipale" object wich has only a print method and contains everything (try to str it !)
-#' @export
-Analyse <- function(triangles,
-                    B=100, 
-                    distNy1="normal", 
-                    distNy2="normal", 
-                    seuil=NA, 
-                    pdd = NA, 
-                    Dossiers = NA, 
-                    Zonnage.capi=FALSE,
-                    BF.capi=NULL,
-                    BF.moy.long=5,
-                    BF.appli.long=5,
-                    stab.repart=NA,
-                    stab.capi = NA,
-                    light_output = FALSE) {
-
-  # Achtung : Le 4eme triangle doit etre celui en capi.
-  # Dans les 3 premiers triangles ( ils doivent etre nomes), l'un d'entre eux doit s'apeller RCDO.
-  cat("\n MBMCL (1/4)...\n")
-  # Calcul du bootstrapp syncrho sur les triangles SI :
-  MBMCL <- MultiBootMackChainLadder(triangles[1:3],
-    B = B,
-    names = names(triangles)[1:3],
-    distNy = distNy1,
-    seuil = seuil,
-    stab = stab.repart
-  )
-
-  cat("tri.ds.ult (2/4)... \n")
-  # Passage a l'utlime du triangle de RCDO en droc-surv sur chaque nouvelle cadence :
-  tri.ds.ult <- MBMCL$RCDO$NyUltimates %>%
-    apply(1, list) %>%
-    unlist(recursive = FALSE) %>%
-    map2(list(.diag(triangles$RCDO)), ~ .y / .x) %>%
-    map(~ incr2cum(.passage.a.lultime(triangles[[4]], .x)))
-
-  cat("BMCL.capis (3/4)... \n")
-  # Bootstrapp du triangle RCDO ultime :
-  BMCL.capis <- tri.ds.ult %>% map(BootMackChainLadder, B = 1, distNy = distNy2, seuil = seuil, zonnage = Zonnage.capi,BF.premiums = BF.capi,BF.param = c(BF.moy.long,BF.appli.long),stab=stab.capi)
-
-  class(BMCL.capis) <- c("BootMackChainLadderCapi", class(BMCL.capis))
-
-
-  valeur.psnem.deterministe <- (.diag(triangles$RCDO) / .ultimates(triangles$RCDO)) %>%
-    {
-      .passage.a.lultime(triangles[[4]], .)
-    } %>%
-    incr2cum() %>%
-    .ibnr() %>%
-    sum()
-  valeur.psap.capi.deterministe <- (.diag(triangles$RCDO) / .ultimates(triangles$RCDO)) %>% {
-    sum(.diag(incr2cum(.passage.a.lultime(triangles[[4]], .)))) - sum(triangles[[4]], na.rm = TRUE)
-  }
-
-
-  # recuperation des 5 provisions uniquement pour analyse :
-  ibnr <- MBMCL %>%
-    map("NyIBNR") %>%
-    map(rowSums) %>%
-    enframe() %>%
-    add_row(name = "RCDO.psnem", value = list(BMCL.capis %>% map("NyIBNR") %>% map_dbl(sum))) %>%
-    spread(name, value) %>%
-    unnest() %>%
-    mutate(RCDO.ibnr.capi = (BMCL.capis %>% map("Latest") %>% map_dbl(sum)) - sum(triangles[[4]], na.rm = TRUE))
-
-  psap <- ibnr %>% transmute(
-    RCDC = RCDC + pdd$RCDC,
-    RCDO = RCDO.ibnr.capi + pdd$RCDO, ######### On pourrais prendre ici les psap calcul?es en repart, mais on prend celles en capi.
-    RCG = RCG + pdd$RCG,
-    PSNEM = RCDO.psnem,
-    LOB8 = RCDC + RCDO + PSNEM + RCG
-  )
-
-  # petite mise en jambe sur les residus :
-  analyse.residus <- map(triangles[1:3], .residuals) %>%
-    map(as.data.frame) %>%
-    map(as.tibble) %>%
-    map2(names(.), ~ mutate(.x, tri = .y)) %>%
-    {
-      do.call(rbind, .)
-    } %>%
-    select(tri, origin, dev, value) %>%
-    mutate(is.ok = map_dbl(value, function(x) {
-      return(x >= -2 & x <= 2)
-    }))
-  
-  # Allégés  : 
-  
-  if(light_output){
-    BMCL.capis %<>% map(function(x){
-      x$residuals <- NULL
-      x$NyCum <- NULL
-      x$NyInc <- NULL
-      x$Latest <- NULL
-      x$DFBoot <- NULL
-      return(x)
-    })
-    MBMCL$RCDO$residuals <- NULL
-    MBMCL$RCDO$residuals <- NULL
-    MBMCL$RCDO$NyCum <- NULL
-    MBMCL$RCDO$NyInc <- NULL
-    MBMCL$RCDO$Latest <- NULL
-    
-    MBMCL$RCDC$residuals <- NULL
-    MBMCL$RCDC$residuals <- NULL
-    MBMCL$RCDC$NyCum <- NULL
-    MBMCL$RCDC$NyInc <- NULL
-    MBMCL$RCDC$Latest <- NULL
-    
-    MBMCL$RCG$residuals <- NULL
-    MBMCL$RCG$residuals <- NULL
-    MBMCL$RCG$NyCum <- NULL
-    MBMCL$RCG$NyInc <- NULL
-    MBMCL$RCG$Latest <- NULL
-    
-  }
-  
-  cat("out (4/4)... \n")
-  out <- list(
-    triangles = triangles,
-    B = B,
-    distNy1 = distNy1,
-    distNy2 = distNy2,
-    seuil = seuil,
-    pdd = pdd,
-    Dossiers = Dossiers,
-    MBMCL = MBMCL,
-    BMCL.capis = BMCL.capis,
-    valeur.psnem.deterministe = valeur.psnem.deterministe,
-    valeur.psap.capi.deterministe = valeur.psap.capi.deterministe,
-    ibnr = ibnr,
-    psap = psap,
-    analyse.residus = analyse.residus,
-    BF=list(input_primes=BF.capi,long.moy=BF.moy.long,long.appli=BF.appli.long),
-    Zonnage.capi = Zonnage.capi,
-    stab = list(repart = stab.repart, capi = stab.capi),
-    light = light_output
-  )
-  class(out) <- c("Etudeprincipale", class(out))
-  return(out)
-}
-
-#' print.Etudeprincipale
-#'
-#' @param x An EtudePrincipale Object
-#'
-#' @return returns x after aving printed a lot of informations about it.
-#' @export
-#'
-print.Etudeprincipale <- function(x, ...) {
-  
-  cat(
-    "Ceci est une etude bootstrap synchro en LOB8. \n\n1. Parametres :\n \tB =", x$B,
-    "\n\tdistNy1 = ", x$distNy1,
-    "\n\tdistNy2 = ", x$distNy2
-  )
-  if (!is.na(x$seuil)) {
-    cat("\n\tSeuil limite des residus = ", x$seuil)
-  }
-  cat("\n\tPDD Totale :  = ", sum(x$pdd))
-  cat("\n\tTaille des triangles : ", dim(x$triangles[[1]])[[1]])
-  if (!is.null(x$BF$input_primes)){
-    cat("\n\tParamétrage du BF en capi :  long.moy = ", x$BF$long.moy," et long.appli = ",x$BF$long.appli)
-  }
-  if (x$Zonnage.capi){
-    cat("\n\tLa capi à été zonnée")
-  }
-  if(!is.na(x$stab$repart)){
-    cat("\n\tDurée de stabilisation en repartition : ",x$stab$repart)
-  }
-  if(!is.na(x$stab$repart)){
-    cat("\n\tDurée de stabilisation en capitalisation : ",x$stab$capi)
-  }
-  # cat("\n\nDossiers d'enregistrement: ")
-  # print(rez$Dossiers %>% unlist)
-
-  # petit check : les ultimes de l'annee prochaine moins les ibnr de l'annee prochaine moins la diag de cette annee, ca doit faire 0.
-  if (c(
-    (rowSums(x$MBMCL$RCDO$NyUltimates) - rowSums(x$MBMCL$RCDO$NyIBNR) - sum(.diag(x$triangles$RCDO))),
-    (rowSums(x$MBMCL$RCDC$NyUltimates) - rowSums(x$MBMCL$RCDC$NyIBNR) - sum(.diag(x$triangles$RCDC))),
-    (rowSums(x$MBMCL$RCG$NyUltimates) - rowSums(x$MBMCL$RCG$NyIBNR) - sum(.diag(x$triangles$RCG)))
-  ) %>% round(6) %>% unique() != 0) {
-    cat("Un des tests echous, le modele possede probablement une erreur de precision quelque part.")
-  }
-
-  cat("\n\n2. Totaux du bootstrap synchro partie repartition :\n")
-  print(mean(x$MBMCL)$Totals)
-
-  cat("\n\n3. PSNEM et PSAP deterministes obtenus en capi :\n")
-  cat("\n\tPSNEM = ", x$valeur.psnem.deterministe)
-  cat("\n\tPSAP  = ", x$valeur.psap.capi.deterministe)
-
-
-  cat("\n\n4. IBNR moyens (EN RCDO : calcule en repart ou en capi) :\n")
-  print(colMeans(x$ibnr))
-  cat("\nCorrelation des IBNR : \n")
-  print(cor(x$ibnr))
-
-  cat("\n\n5. PSAP (en moyenne) :\n")
-  print(colMeans(x$psap))
-  cat("\nCorrelation des PSAP : \n")
-  print(cor(x$ibnr))
-
-
-  cat("\n\n6. Resultats en termes de sigma de reserve :\n")
-  x %>% Sigma.EtudePrincipale %T>% print
-
-
-  cat("\n\n7. Pourcentage de residus en dehors de (-2;2) : ", table(x$analyse.residus$is.ok) %>% {
-    .[1] / (.[1] + .[2])
-  })
-  return(NULL)
-}
-#' Sigma.EtudePrincipale
-#'
-#' @param x Une étude
-#'
-#' @return retourne une matrice de corel des CDR du modèle
-#' @export
-#'
-#' @examples
-Sigma.EtudePrincipale <- function(x){
-  x$psap %>%
-    map_dfr(~ data.frame(sd = sd(.), mean = mean(.))) %>%
-    mutate(grh = colnames(x$psap)) %>%
-    select(grh, sd, mean) %>%
-    mutate(sigma = sd / mean) 
-}
-
-#' plots of EtudePrincipale
-#'
-#'  A serie of plotting functions exists for an etudeprincipale.
-#'  Some more will probably be added later.
-#'
-#'
-#' @param x A EtudePrincipale object
-#'
-#' @return dependns. sometimes thees functions returns a plot.
-#' @export
-#'
-#' @details Following plotting functions are avaliable : plot_factors_density plot_reserve_density plot_ibnr_density plot_burn_in plot_rho plot_resid_norm plot_resid_dens plot_resid_dens2 plot_resid_stabilite plot_resid_margins plot_cdr_mw plot_cadences_capi
-#'
-#' @aliases plot_factors_density plot_reserve_density plot_ibnr_density plot_burn_in plot_rho plot_resid_norm plot_resid_dens plot_resid_dens2 plot_resid_stabilite plot_resid_margins plot_cdr_mw plot_cadences_capi
-plot_factors_density <- function(x) {
-
-  cat("Facteurs de developpements bootstrappes en repartition")
-  # graphique des cadences de developpement bootstrapees
-  x$MBMCL %>%
-    map("DFBoot") %>%
-    map(as.data.frame) %>%
-    map(gather) %>%
-    enframe() %>%
-    unnest() %>%
-    set_names(c("grh", "dev", "value")) %>%
-    mutate(dev = as.numeric(dev)) %>%
-    group_by(grh, dev) %>%
-    summarise(
-      mean = mean(value),
-      lower = quantile(value, 0.01),
-      upper = quantile(value, 0.99)
-    ) %>%
-    ungroup() %>%
-    ggplot(aes(x = dev, y = mean, color = grh)) +
-    facet_grid(grh ~ .) +
-    geom_line(size = 1, color = "black") +
-    geom_ribbon(aes(ymin = lower, ymax = upper, fill = grh), size = 0, alpha = 0.5) +
-    geom_hline(yintercept = 1, size = 0.5) +
-    facet_grid(grh ~ ., scales = "free") +
-    theme(legend.position = "none")
-
-}
-#' @export
-plot_reserve_density <- function(x) {
-
-  cat("Desnitée des provisions des différents triangles, densité de psap et de psnem a un an sur la RCDO, densité des ibnr uniquement.")
-
-  p2 <- x$psap %>%
-    gather() %>%
-    ggplot(aes(x = value, col = key, fill = key)) +
-    geom_density(alpha = 0.1)# +
-    #ggtitle("Densitees des provisions des differents triangles")
-
-  # densite des psap et des psnem :
-  p3 <- data.frame(psnem = x$psap$PSNEM, psap = x$psap$RCDO) %>%
-    gather() %>%
-    ggplot(aes(x = value, col = key, fill = key)) +
-    geom_density(alpha = 0.1)# +
-    #ggtitle("Densitees des psap et des psnem (a un an) sur la RCDO")
-
-
-  # densiite des IBNR :
-  p4 <- x$ibnr %>%
-    gather() %>%
-    ggplot(aes(x = value, col = key, fill = key)) +
-    geom_density(alpha = 0.1)# +
-    #ggtitle("Densitees des ibnr uniquement")
-
-
-  grid.arrange(grobs = list(p2, p3, p4), layout_matrix = rbind(c(1), c(2), c(3)))
-  # rm(p1,p2,p3,p4)
-  # plot(1)
-  # plot(p5)
-}
-
-#' @export
-plot_ibnr_density <- function(x) {
-
-  cat("IBNR en RC, en RCDC, en RCDO (repart), en RCDO (capi), PSNEM en RCDO, Erreur relative des ibnr RCDO entre la capi et la repart. les droites verticales représente les valeur deterministes.")
-
-  par(mfrow = c(3, 2))
-
-  x$ibnr$RCG %>% density() %>% plot#(main = "IBNR en RCG")
-  abline(v = x$triangles[["RCG"]] %>% .ibnr() %>% sum())
-
-  x$ibnr$RCDC %>% density() %>% plot#(main = "IBNR en RCDC")
-  abline(v = x$triangles[["RCDC"]] %>% .ibnr() %>% sum())
-
-  x$ibnr$RCDO %>% density() %>% plot#(main = "IBNR en RCDO (repart)")
-  abline(v = x$triangles[["RCDO"]] %>% .ibnr() %>% sum())
-
-  x$ibnr$RCDO.ibnr.capi %>% density() %>% plot#(main = "IBNR en RCDO (capi)")
-  abline(v = x$valeur.psap.capi.deterministe)
-
-  x$ibnr$RCDO.psnem %>% density() %>% plot#(main = "PSNEM RCDO")
-  abline(v = x$valeur.psnem.deterministe) # on a donc bien une psnem centre sur la psnem deterministe.
-
-  plot(density((x$ibnr$RCDO.ibnr.capi - x$ibnr$RCDO) / x$ibnr$RCDO))#, main = "Erreur relative des ibnr RCDO capi/repart")
-  abline(v = mean((x$ibnr$RCDO.ibnr.capi - x$ibnr$RCDO) / x$ibnr$RCDO))
-  par(mfrow = c(1, 1))
-}
-#' @export
-plot_burn_in <- function(x) {
-  # Burn-in de la varianc des provisions :
-  p1 <- x$psap %>%
-    mutate_all(.cumsd) %>%
-    mutate(row = row_number()) %>%
-    gather(key = "key", value = "value", -row) %>%
-    ggplot(aes(x = row, y = value, col = key)) +
-    geom_line() +
-    ggtitle("Burn-in de la variance des provisions")
-
-  p2 <- x$psap %>%
-    mutate_all(~ .cumsd(.x) / cummean(.x)) %>%
-    mutate(row = row_number()) %>%
-    gather(key = "key", value = "value", -row) %>%
-    ggplot(aes(x = row, y = value, col = key)) +
-    geom_line() +
-    ggtitle("Burn-in du sigma de reserve")
-
-  p3 <- x$psap %>%
-    select(LOB8) %>%
-    mutate_all(~ .cumsd(.x) / cummean(.x)) %>%
-    mutate(row = row_number()) %>%
-    gather(key = "key", value = "value", -row) %>%
-    ggplot(aes(x = row, y = value, col = key)) +
-    geom_line() +
-    ggtitle("Burn-in du sigma de reserve LOB")
-
-  p4 <- x$psap %>%
-    .cumcorel() %>%
-    select(2:5, 8:10, 14:15, 20) %>%
-    mutate(row = row_number()) %>%
-    gather(key = "key", value = "value", -row) %>%
-    ggplot(aes(x = row, y = value, col = key)) +
-    geom_line() +
-    ggtitle("Burn-in des corelations")
-
-  grid.arrange(p1, p2, p3, p4)
-}
-#' @export
-plot_rho <- function(x) {
-  # graphique des coeficients de corelations des triangles.
-  rho <- .rho(x$triangles)
-  map(1:(as.numeric(rev(rownames(x$triangles[[1]]))[1]) - 1990 - 1), ~ c(rho[.x, , ][1, 2:3], rho[.x, , ][2, 3])) %>% map_dbl(1) %>% plot(col = 4, main = "Parametres de corelations des triangles.", ylim = c(-1, 1))
-  map(1:(as.numeric(rev(rownames(x$triangles[[1]]))[1]) - 1990 - 1), ~ c(rho[.x, , ][1, 2:3], rho[.x, , ][2, 3])) %>% map_dbl(2) %>% points(col = 2)
-  map(1:(as.numeric(rev(rownames(x$triangles[[1]]))[1]) - 1990 - 1), ~ c(rho[.x, , ][1, 2:3], rho[.x, , ][2, 3])) %>% map_dbl(3) %>% points(col = 3)
-  abline(h = 0)
-}
-#' @export
-plot_resid_norm <- function(x) {
-  par(mfrow = c(2, 3))
-  x$analyse.residus %>%
-    group_by(tri) %>%
-    summarise(residus = list(value)) %>%
-    {
-      map2(.$residus, .$tri, function(rez, nom) {
-        qqnorm(rez, main = paste0("QQ-Norm : ", nom))
-        abline(0, 1)
-      })
-    }
-
-  x$analyse.residus %>% filter(tri == "RCDO") %>% .$value %>% density(na.rm = TRUE) %>% plot(xlim = c(-5, 5), main = "Densites des residus en RCDO")
-  curve(dnorm, add = TRUE, col = 2)
-  x$analyse.residus %>% filter(tri == "RCDC") %>% .$value %>% density(na.rm = TRUE) %>% plot(xlim = c(-5, 5), main = "Densites des residus en RCDC")
-  curve(dnorm, add = TRUE, col = 2)
-  x$analyse.residus %>% filter(tri == "RCG") %>% .$value %>% density(na.rm = TRUE) %>% plot(xlim = c(-5, 5), main = "Densites des residus en RCG")
-  curve(dnorm, add = TRUE, col = 2)
-  par(mfrow = c(1, 1))
-}
-#' @export
-plot_resid_dens <- function(x) {
-  # graphiques des residus
-  x$analyse.residus %>%
-    drop_na() %>%
-    select(tri, value) %>%
-    ggplot(aes(x = value, color = tri, fill = tri)) +
-    geom_density(alpha = 0.1) +
-    ggtitle("Densite des residus des triangles en survenance-inventaire")
-}
-#' @export
-plot_resid_dens2 <- function(x) {
-  # analyse des residus :
-
-  rez <- x$analyse.residus %>% drop_na() %>% .$value
-  hist(rez, freq = FALSE, main = "Distribution des residus / densitee d'une N(0,1)")
-  x <- seq(min(rez), max(rez), length = 1000)
-  y <- dnorm(x)
-  lines(x, y)
-}
-#' @export
-plot_resid_stabilite <- function(x) {
-  p1 <- x$analyse.residus %>%
-    drop_na() %>%
-    mutate(dev = as.numeric(dev)) %>%
-    ggplot(aes(x = dev, y = value, color = tri)) +
-    geom_point() +
-    geom_smooth(method = "loess") +
-    ggtitle("Residus des differents triangles par annee de developpement")
-  p2 <- x$analyse.residus %>%
-    drop_na() %>%
-    mutate(origin = as.numeric(origin)) %>%
-    ggplot(aes(x = origin, y = value, color = tri)) +
-    geom_point() +
-    geom_smooth(method = "loess") +
-    ggtitle("Residus des differents triangles par annee d'origine")
-  p3 <- x$analyse.residus %>%
-    mutate(cal = as.numeric(origin) + as.numeric(dev)) %>%
-    drop_na() %>%
-    ggplot(aes(x = cal, y = value, color = tri)) +
-    geom_point() +
-    geom_smooth(method = "loess") +
-    ggtitle("Residus des differents triangles par annee calendaire")
-
-  grid.arrange(p1, p2, p3)
-}
-#' @export
-plot_resid_margins <- function(x) {
-  # et finalement les planches de graphiques de mack-chain-ladder
-  suppressWarnings(x$triangles[1:3] %>% map(MackChainLadder, est.sigma = "Mack") %>% map(plot))
-  suppressWarnings(x$triangles[[4]] %>% incr2cum() %>% MackChainLadder(est.sigma = "Mack") %>% plot())
-}
-#' @export
-plot_cdr_mw <- function(x) {
-  # petite comparaison des CDR avec ceux implementes dans la librairie ChainLadder :
-  cdr.booted <- c(CDR(x$MBMCL$RCDO)$`CDR(1)S.E.`[1:24], CDR(x$MBMCL$RCDC)$`CDR(1)S.E.`[1:24], CDR(x$MBMCL$RCG)$`CDR(1)S.E.`[1:24])
-  suppressWarnings(classical.cdr.merz <- c(
-    x$triangles$RCDO %>% MackChainLadder() %>% CDR() %>% .$`CDR(1)S.E.` %>% .[1:24],
-    x$triangles$RCDC %>% MackChainLadder() %>% CDR() %>% .$`CDR(1)S.E.` %>% .[1:24],
-    x$triangles$RCG %>% MackChainLadder() %>% CDR() %>% .$`CDR(1)S.E.` %>% .[1:24]
-  ))
-  plot(cdr.booted, classical.cdr.merz, main = "CDR(1) : bootstrap VS M&W classique")
-  abline(0, 1)
-}
-#' @export
-plot_cadences_capi <- function(x, type =2) {
-  DFtoCad <- . %>%
-    c(1, .) %>%
-    cumprod() %>%
-    {
-      . - c(1, .)
-    } %>%
-    {
-      c(1, .[2:(length(.) - 1)])
-    } %>%
-    {
-      . / sum(.)
-    } %>%
-    set_names(paste0("cad", 1:length(.)))
-
-
-  cadences_boot <- x$BMCL.capis %>% map("DF") %>% map(DFtoCad)
-
-  if (type == 1) {
-    p <- cadences_boot %>%
-      unlist() %>%
-      {
-        list(., names(.))
-      } %>%
-      enframe() %>%
-      spread(key = "name", value = "value") %>%
-      unnest() %>%
-      set_names(c("cad", "date")) %>%
-      select(date, cad) %>%
-      separate(date, c("plop", "date"), sep = "d") %>%
-      transmute(x = as.numeric(date), y = cad) %>%
-      # filter(x < 19) %>%
-      mutate(
-        zonne = as.factor(1 * (x < 3) + 2 * (x > 2) * (x < 10) + 3 * (x > 9) * (x < 13) + 4 * (x > 12))
-      ) %>%
-      ggplot(aes(as.factor(x), y, color = zonne)) +
-      ggtitle("Cadence de manifestations de la RCDO - Zonnee.") +
-      geom_boxplot(width = 1, outlier.size = 0.7) +
-      stat_summary(fun.y = mean, geom = "line", aes(group = 1))
-    # stat_summary(fun.y=mean, geom="line", aes(group=1))  +
-    # stat_summary(fun.y=mean, geom="point")# +
-    # geom_vline(xintercept = c(2.5,9.5,12.5))
-  } else {
-    p <- cadences_boot %>%
-      unlist() %>%
-      {
-        list(., names(.))
-      } %>%
-      enframe() %>%
-      spread(key = "name", value = "value") %>%
-      unnest() %>%
-      set_names(c("cad", "date")) %>%
-      select(date, cad) %>%
-      separate(date, c("plop", "date"), sep = "d") %>%
-      transmute(x = as.numeric(date), y = cad) %>%
-      filter(x < 19) %>%
-      mutate(
-        zonne = as.factor(1 * (x < 3) + 2 * (x > 2) * (x < 10) + 3 * (x > 9) * (x < 13) + 4 * (x > 12))
-      ) %>%
-      ggplot(aes(as.factor(x), y, color = zonne)) +
-      ggtitle("Cadence de manifestations de la RCDO - Zonnee.") +
-      geom_boxplot(width = 1, outlier.size = 0.7) +
-      # stat_summary(fun.y=mean, geom="line", aes(group=1))  +
-      # stat_summary(fun.y=mean, geom="point") +
-      geom_vline(xintercept = c(2.5, 9.5, 12.5)) +
-      stat_summary(fun.y = mean, geom = "line", aes(group = 1))
-  }
-
-  return(p)
-}
-
-##### Tests                                                                          #####
-#
-#
-# # test :
-# library(ChainLadder)
-# library(magrittr)
-#
-#
-#
-# data(ABC)
-# data(auto)
-# MCL <- MackChainLadder(ABC,est.sigma="Mack")
-# BMCL1 <- BootMackChainLadder(ABC,B=10000,distNy = "normal")
-# BMCL2 <- BootMackChainLadder(ABC,B=10000,distNy = "residuals")
-#
-# # r?sum? :
-# BMCL1
-# BMCL2
-# MCL
-#
-# # cdr :
-# plot(as.numeric(rownames(CDR(MCL))[1:11]),CDR(MCL)$`CDR(1)S.E.`[1:11],type="l")
-# points(as.numeric(rownames(CDR(MCL))[1:11]),CDR(BMCL1)$`CDR(1)S.E.`[1:11],type="l",col=2)
-# points(as.numeric(rownames(CDR(MCL))[1:11]),CDR(BMCL2)$`CDR(1)S.E.`[1:11],type="l",col=3)
-#
-# # the convergence is neat :)
-#
-#
-# # lets try on other triangles :
-# data(MW2008)
-#
-# MCL <- MackChainLadder(MW2008,est.sigma="Mack")
-# BMCL1 <- BootMackChainLadder(MW2008,B=10000,distNy = "normal")
-# BMCL2 <- BootMackChainLadder(MW2008,B=10000,distNy = "residuals")
-#
-# # r?sum? :
-# BMCL1
-# BMCL2
-# MCL
-#
-# # cdr :
-# plot(as.numeric(rownames(CDR(MCL))[1:11]),CDR(MCL)$`CDR(1)S.E.`[1:11],type="l")
-# points(as.numeric(rownames(CDR(MCL))[1:11]),CDR(BMCL1)$`CDR(1)S.E.`[1:11],type="l",col=2)
-# points(as.numeric(rownames(CDR(MCL))[1:11]),CDR(BMCL2)$`CDR(1)S.E.`[1:11],type="l",col=3)
-#
-#
-# MBMCL1 <- MultiBootMackChainLadder(auto,B=10000,distNy = "normal")
-# MBMCL2 <- MultiBootMackChainLadder(auto,B=10000,distNy = "residuals.global")
-# MBMCL3 <- MultiBootMackChainLadder(auto,B=10000,distNy = "residuals.bycolumn")
-# MBMCL1
-# MBMCL2
-# MBMCL3
-# data.frame(cdr1 = CDR(MBMCL1)$ByOrigin$`CDR(1).SE.Tot`,
-#            cdr2 = CDR(MBMCL2)$ByOrigin$`CDR(1).SE.Tot`,
-#            cdr3 = CDR(MBMCL3)$ByOrigin$`CDR(1).SE.Tot`) %>% matplot(type="l")
-# legend("topleft",cex=0.7,col=c(1,2,3),lty=c(1,2,3),legend = c("H : residus normaux, correles, simules","H : residus globalement correles, boostrapes","H : residus correles par colonne, bootstrape"))
-#
-#
-# # sigma de reserve total :
-# sigma1 <- CDR(MBMCL1)$Total["Tot",2]/CDR(MBMCL1)$Total["Tot",1]
-# sigma2 <- CDR(MBMCL2)$Total["Tot",2]/CDR(MBMCL2)$Total["Tot",1]
-# sigma3 <- CDR(MBMCL3)$Total["Tot",2]/CDR(MBMCL3)$Total["Tot",1]
-#
-
-##### Fin #####
