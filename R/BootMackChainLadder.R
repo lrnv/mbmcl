@@ -909,7 +909,7 @@ CDR.MultiBootMackChainLadder <- function(x) {
 #' triangles <- list(tri1 = ABC, tri2 = ABC, tri3 = ABC)
 #' MBMCL <- MultiBootmackChainLadder(triangles,100)
 #' NyIBNR(MBMCL)
-NyIBNR.MultiBootMackChainLadder <- function(x, ByOrigin = FALSE) {
+NyIBNR <- function(x, ByOrigin = FALSE) {
   NyIBNR <- lapply(x, `[[`, "NyIBNR")
   NyIBNR$Tot <- Reduce("+", NyIBNR)
   if (!ByOrigin) {
