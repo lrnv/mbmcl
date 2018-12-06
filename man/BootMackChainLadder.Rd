@@ -5,7 +5,8 @@
 \title{Boot Mack Chain Ladder model}
 \usage{
 BootMackChainLadder(Triangle, B = 100, distNy = "normal", seuil = NA,
-  zonnage = FALSE, BF.premiums = NULL, BF.param = c(5, 5), stab = NA)
+  zonnage = FALSE, BF.premiums = NULL, BF.param = c(5, 5),
+  stab = NA)
 }
 \arguments{
 \item{Triangle}{A simple triangle from che Chain-ladder package.}
@@ -27,6 +28,9 @@ A BootMackChainLadder object with a lot of information about the bootstrapping. 
 }
 \description{
 This function implement a simple bootstrap of the residuals from the mack model with a one-year reserving risk point of view.
+}
+\details{
+The bootstrap that is implemented here consist in a resampling of residuals obtained by the Mack model (or simulated standard normal residuals if you choose so), and on thoose samples we construct a one-year point of view of the mack model, allowing us to bootstrap one-year quantities like the CDR or next year IBNRS. Using thisfunction properly, you could check that the proposed bootstrap is convergent with the merz-wuthrich formula if you take standard normal résiduals, but not otherwise.
 }
 \examples{
 data(ABC)
