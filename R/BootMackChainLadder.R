@@ -934,7 +934,7 @@ NyIBNR.MultiBootMackChainLadder <- function(x, ByOrigin = FALSE) {
 #' triangles <- list(tri1 = ABC, tri2 = ABC, tri3 = ABC)
 #' MBMCL <- MultiBootmackChainLadder(triangles,100)
 #' Corel(MBMCL)
-Corel.MultiBootMackChainLadder <- function(x, ...) {
+Corel <- function(x, ...) {
   NyIBNR <- NyIBNR(x)
   NyIBNR$Tot <- NULL
   return(cor(NyIBNR, ...))
